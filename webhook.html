@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Logs Panel</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0b1120;
+    color: white;
+}
+
+header {
+    padding: 15px;
+    background: linear-gradient(90deg, #00f0ff, #007cf0);
+    font-size: 20px;
+}
+
+.container {
+    padding: 15px;
+}
+
+.log {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: #111827;
+    font-size: 13px;
+}
+
+/* цвета типов */
+.proxy { border-left: 4px solid orange; }
+.error { border-left: 4px solid red; }
+.chat { border-left: 4px solid #00f0ff; }
+.feedback { border-left: 4px solid violet; }
+.join { border-left: 4px solid lime; }
+.kick { border-left: 4px solid crimson; }
+.auth { border-left: 4px solid yellow; }
+.action { border-left: 4px solid gray; }
+
+select {
+    margin-bottom: 10px;
+    padding: 5px;
+    background: #111827;
+    color: white;
+    border: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>⚡ grin4y logs</header>
+
+<div class="container">
+
+<select id="filter">
+    <option value="all">ALL</option>
+    <option value="proxy">PROXY</option>
+    <option value="error">ERROR</option>
+    <option value="chat">CHAT</option>
+    <option value="feedback">FEEDBACK</option>
+    <option value="join">JOIN</option>
+    <option value="kick">KICK</option>
+    <option value="auth">AUTH</option>
+</select>
+
+<div id="logs"></div>
+
+</div>
+
+<script>
+async function load() {
+    const res = await fetch("/logs");
+    const data = await res.json();
+
+    const filter = document.getElementById("filter").value;
+    const box = document.getElementById("logs");
+
+    box.innerHTML = "";
+
+    data.reverse().forEach(log => {
+        if (filter !== "all" && log.type !== filter) return;
+
+        const div = document.createElement("div");
+        div.className = "log " + log.type;
+
+        div.innerHTML = `
+            <b>[${log.type.toUpperCase()}]</b> (${log.time})<br>
+            ${JSON.stringify(log.data)}
+        `;
+
+        box.appendChild(div);
+    });
+}
+
+setInterval(load, 1500);
+load();
+</script>
+
+</body>
+</html>
