@@ -5,90 +5,108 @@
 <title>Logs Panel</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #0b1120;
-    color: white;
-}
+body { margin:0; font-family:Arial; background:#0b1120; color:white; }
+header { padding:15px; background:linear-gradient(90deg,#00f0ff,#007cf0); }
 
-header {
-    padding: 15px;
-    background: linear-gradient(90deg, #00f0ff, #007cf0);
-    font-size: 20px;
-}
-
-.container {
-    padding: 15px;
-}
+.container { padding:15px; }
 
 .log {
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 8px;
-    background: #111827;
-    font-size: 13px;
+    padding:10px;
+    margin-bottom:8px;
+    border-radius:8px;
+    background:#111827;
+    font-size:13px;
 }
 
-/* цвета типов */
-.proxy { border-left: 4px solid orange; }
-.error { border-left: 4px solid red; }
-.chat { border-left: 4px solid #00f0ff; }
-.feedback { border-left: 4px solid violet; }
-.join { border-left: 4px solid lime; }
-.kick { border-left: 4px solid crimson; }
-.auth { border-left: 4px solid yellow; }
-.action { border-left: 4px solid gray; }
+.error { border-left:4px solid red; }
+.join { border-left:4px solid lime; }
+.kick { border-left:4px solid crimson; }
+.chat { border-left:4px solid #00f0ff; }
+.proxy { border-left:4px solid orange; }
+.feedback { border-left:4px solid violet; }
+.auth { border-left:4px solid yellow; }
 
-select {
-    margin-bottom: 10px;
-    padding: 5px;
-    background: #111827;
-    color: white;
-    border: none;
+input, select {
+    margin:5px;
+    padding:5px;
+    background:#111827;
+    color:white;
+    border:none;
+}
+.stats {
+    margin-bottom:10px;
 }
 </style>
 </head>
 
 <body>
 
-<header>⚡ grin4y logs</header>
+<header>⚡ grin4y panel</header>
 
 <div class="container">
 
+<input id="search" placeholder="🔍 поиск по нику">
 <select id="filter">
-    <option value="all">ALL</option>
-    <option value="proxy">PROXY</option>
-    <option value="error">ERROR</option>
-    <option value="chat">CHAT</option>
-    <option value="feedback">FEEDBACK</option>
-    <option value="join">JOIN</option>
-    <option value="kick">KICK</option>
-    <option value="auth">AUTH</option>
+<option value="all">ALL</option>
+<option value="join">JOIN</option>
+<option value="error">ERROR</option>
+<option value="chat">CHAT</option>
+<option value="kick">KICK</option>
+<option value="proxy">PROXY</option>
+<option value="feedback">FEEDBACK</option>
+<option value="auth">AUTH</option>
 </select>
+
+<div class="stats" id="stats"></div>
 
 <div id="logs"></div>
 
 </div>
 
 <script>
+let lastErrorCount = 0;
+
 async function load() {
-    const res = await fetch("/logs");
+    const res = await fetch("/logs", {
+        headers: { "Authorization": "1234" }
+    });
+
     const data = await res.json();
 
+    const search = document.getElementById("search").value.toLowerCase();
     const filter = document.getElementById("filter").value;
     const box = document.getElementById("logs");
 
     box.innerHTML = "";
 
+    let stats = {
+        join:0, error:0, chat:0, kick:0, proxy:0, feedback:0, auth:0
+    };
+
+    data.forEach(log => {
+        stats[log.type] = (stats[log.type] || 0) + 1;
+    });
+
+    document.getElementById("stats").innerHTML =
+        `JOIN: ${stats.join} | ERROR: ${stats.error} | CHAT: ${stats.chat}`;
+
+    // 🔔 звук при новой ошибке
+    if (stats.error > lastErrorCount) {
+        new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
+    }
+    lastErrorCount = stats.error;
+
     data.reverse().forEach(log => {
+        const text = JSON.stringify(log.data).toLowerCase();
+
         if (filter !== "all" && log.type !== filter) return;
+        if (search && !text.includes(search)) return;
 
         const div = document.createElement("div");
         div.className = "log " + log.type;
 
         div.innerHTML = `
-            <b>[${log.type.toUpperCase()}]</b> (${log.time})<br>
+            <b>[${log.type}]</b> (${log.time})<br>
             ${JSON.stringify(log.data)}
         `;
 
